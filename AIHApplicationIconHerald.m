@@ -13,8 +13,8 @@ NSString *AIHRequestNotificationName = @"com.manytricks.AIHRequestNotification";
 NSString *AIHFormatKey = @"Format";
 NSString *AIHBundleUserNameKey = @"User";
 NSString *AIHBundleIdentifierKey = @"Identifier";
-NSString *AIHImageKey = @"Image";
 NSString *AIHBadgeKey = @"Badge";
+NSString *AIHImageKey = @"Image";
 
 
 static NSImage *_Nonnull AIHCreateBadgeImage(NSString *_Nonnull badge, NSColor *_Nullable textColor, NSColor *_Nullable backgroundColor) {
@@ -130,29 +130,30 @@ static NSDictionary *_Nullable AIHCreateTransportDictionary(NSDictionary *_Nulla
 	return transportDictionary;
 }
 
-static void AIHDeliverIconToMainQueue(NSDictionary *_Nonnull transportDictionary, AIHListeningBlock _Nonnull listeningBlock) {
+static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictionary, NSString *_Nullable *_Nullable bundleIdentifierPointer, NSString *_Nonnull *_Nullable badgePointer, NSImage *_Nullable *_Nullable imagePointer, NSImage *_Nullable *_Nullable compositeIconPointer) {
 	NSString *bundleIdentifier = [transportDictionary objectForKey: AIHBundleIdentifierKey];
 	if (bundleIdentifier) {
-		NSImage *icon = nil;
+		NSImage *compositeIcon = nil;
+		NSImage *image = nil;
 		NSString *imageString = [transportDictionary objectForKey: AIHImageKey];
 		if (imageString) {
 			NSData *imageData = [[NSData alloc] initWithBase64EncodedString: imageString options: 0];
 			if (imageData) {
-				icon = [[NSImage alloc] initWithData: imageData];
+				image = [[NSImage alloc] initWithData: imageData];
 				#if !__has_feature(objc_arc)
-					[icon autorelease];
+					[image autorelease];
 					[imageData release];
 				#endif
 			}
 		}
 		NSString *badge = [transportDictionary objectForKey: AIHBadgeKey];
 		if (badge) {
-			NSImage *rawImage = ((icon) ? icon : [[[NSRunningApplication runningApplicationsWithBundleIdentifier: bundleIdentifier] firstObject] icon]);
-			if (rawImage) {
+			NSImage *baseIcon = ((image) ? image : [[[NSRunningApplication runningApplicationsWithBundleIdentifier: bundleIdentifier] firstObject] icon]);
+			if (baseIcon) {
 				NSImage *badgeImage = AIHCreateBadgeImage(badge, nil, nil);
 				if (badgeImage) {
-					icon = [NSImage imageWithSize: [rawImage size] flipped: NO drawingHandler: ^(NSRect targetRect) {
-						[rawImage drawInRect: targetRect fromRect: NSZeroRect operation: NSCompositeSourceOver fraction: 1.0];
+					compositeIcon = [NSImage imageWithSize: [baseIcon size] flipped: NO drawingHandler: ^(NSRect targetRect) {
+						[baseIcon drawInRect: targetRect fromRect: NSZeroRect operation: NSCompositeSourceOver fraction: 1.0];
 						AIHDrawBadgeImage(badgeImage, targetRect, YES, YES);
 						return YES;
 					}];
@@ -163,15 +164,25 @@ static void AIHDeliverIconToMainQueue(NSDictionary *_Nonnull transportDictionary
 					NSLog(@"[AIH] cannot generate badge image");
 				}
 			} else {
-				NSLog(@"[AIH] cannot identify raw image");
+				NSLog(@"[AIH] cannot identify base icon");
 			}
 		}
-		dispatch_async(dispatch_get_main_queue(), ^{
-			listeningBlock(bundleIdentifier, icon);
-		});
-	} else {
-		NSLog(@"[AIH] missing bundle identifier");
+		if (bundleIdentifierPointer) {
+			(*bundleIdentifierPointer) = bundleIdentifier;
+		}
+		if (badgePointer) {
+			(*badgePointer) = badge;
+		}
+		if (imagePointer) {
+			(*imagePointer) = image;
+		}
+		if (compositeIconPointer) {
+			(*compositeIconPointer) = ((compositeIcon) ? compositeIcon : image);
+		}
+		return YES;
 	}
+	NSLog(@"[AIH] missing bundle identifier");
+	return NO;
 }
 
 
@@ -242,12 +253,10 @@ static void AIHDeliverIconToMainQueue(NSDictionary *_Nonnull transportDictionary
 					if (transportData) {
 						NSString *transportString = [[NSString alloc] initWithData: transportData encoding: NSUTF8StringEncoding];
 						if (transportString) {
-							dispatch_async(dispatch_get_main_queue(), ^{
-								@synchronized (self) {
-									_latestTransportString = transportString;
-									[[NSDistributedNotificationCenter defaultCenter] postNotificationName: AIHAnnouncementNotificationName object: transportString userInfo: nil options: NSDistributedNotificationDeliverImmediately | NSDistributedNotificationPostToAllSessions];
-								}
-							});
+							@synchronized (self) {
+								_latestTransportString = transportString;
+								[[NSDistributedNotificationCenter defaultCenter] postNotificationName: AIHAnnouncementNotificationName object: transportString userInfo: nil options: NSDistributedNotificationDeliverImmediately | NSDistributedNotificationPostToAllSessions];
+							}
 						} else {
 							NSLog(@"[AIH] cannot encode");
 						}
@@ -332,13 +341,15 @@ static void AIHDeliverIconToMainQueue(NSDictionary *_Nonnull transportDictionary
 						if (transportDictionary) {
 							NSString *userName = [transportDictionary objectForKey: AIHBundleUserNameKey];
 							if ((userName) && [NSUserName() isEqualToString: userName]) {
-								AIHDeliverIconToMainQueue(transportDictionary, ^(NSString *bundleIdentifier, NSImage *icon) {
+								NSString *bundleIdentifier;
+								NSImage *compositeIcon;
+								if (AIHProcessTransportDictionary(transportDictionary, &bundleIdentifier, NULL, NULL, &compositeIcon)) {
 									@synchronized (self) {
 										if (_listeningBlock) {
-											_listeningBlock(bundleIdentifier, icon);
+											_listeningBlock(bundleIdentifier, compositeIcon);
 										}
 									}
-								});
+								}
 							}
 						} else {
 							NSLog(@"[AIH] cannot deserialize: %@", error);
@@ -390,16 +401,17 @@ void AIHSetListeningBlock(AIHListeningBlock _Nullable listeningBlock) {
 	[[AIHListener defaultListener] setListeningBlock: listeningBlock];
 }
 
-void AIHProcessIcon(NSDictionary *_Nonnull iconDictionary, AIHListeningBlock _Nonnull listeningBlock) {
-	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+NSImage *_Nullable AIHCreateCompositeIcon(NSDictionary *_Nonnull iconDictionary) {
+	NSImage *compositeIcon = nil;
+	@autoreleasepool {
 		NSDictionary *transportDictionary = AIHCreateTransportDictionary(iconDictionary);
 		if (transportDictionary) {
-			@autoreleasepool {
-				AIHDeliverIconToMainQueue(transportDictionary, listeningBlock);
-			}
+			AIHProcessTransportDictionary(transportDictionary, NULL, NULL, NULL, &compositeIcon);
 			#if !__has_feature(objc_arc)
 				[transportDictionary release];
+				[compositeIcon retain];
 			#endif
 		}
-	});
+	}
+	return compositeIcon;
 }
