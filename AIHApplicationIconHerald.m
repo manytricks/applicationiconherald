@@ -113,7 +113,11 @@ static NSDictionary *_Nullable AIHCreateTransportDictionary(NSDictionary *_Nulla
 						#endif
 						if (imageString) {
 							[transportDictionary setObject: imageString forKey: AIHImageKey];
+						} else {
+							NSLog(@"[AIH] cannot encode image");
 						}
+					} else {
+						NSLog(@"[AIH] cannot compress image");
 					}
 				}
 				NSString *badge = [iconDictionary objectForKey: AIHBadgeKey];
@@ -130,7 +134,7 @@ static NSDictionary *_Nullable AIHCreateTransportDictionary(NSDictionary *_Nulla
 	return transportDictionary;
 }
 
-static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictionary, NSString *_Nullable *_Nullable bundleIdentifierPointer, NSString *_Nonnull *_Nullable badgePointer, NSImage *_Nullable *_Nullable imagePointer, NSImage *_Nullable *_Nullable compositeIconPointer) {
+static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictionary, NSString *_Nullable *_Nullable bundleIdentifierPointer, NSImage *_Nullable *_Nullable imagePointer, NSString *_Nullable *_Nullable badgePointer, NSImage *_Nullable *_Nullable compositeIconPointer) {
 	NSString *bundleIdentifier = [transportDictionary objectForKey: AIHBundleIdentifierKey];
 	if (bundleIdentifier) {
 		NSImage *compositeIcon = nil;
@@ -140,10 +144,18 @@ static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictio
 			NSData *imageData = [[NSData alloc] initWithBase64EncodedString: imageString options: 0];
 			if (imageData) {
 				image = [[NSImage alloc] initWithData: imageData];
+				if (image) {
+					#if !__has_feature(objc_arc)
+						[image autorelease];
+					#endif
+				} else {
+					NSLog(@"[AIH] cannot generate image");
+				}
 				#if !__has_feature(objc_arc)
-					[image autorelease];
 					[imageData release];
 				#endif
+			} else {
+				NSLog(@"[AIH] cannot decode image");
 			}
 		}
 		NSString *badge = [transportDictionary objectForKey: AIHBadgeKey];
@@ -151,18 +163,14 @@ static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictio
 			NSImage *baseIcon = ((image) ? image : [[[NSRunningApplication runningApplicationsWithBundleIdentifier: bundleIdentifier] firstObject] icon]);
 			if (baseIcon) {
 				NSImage *badgeImage = AIHCreateBadgeImage(badge, nil, nil);
-				if (badgeImage) {
-					compositeIcon = [NSImage imageWithSize: [baseIcon size] flipped: NO drawingHandler: ^(NSRect targetRect) {
-						[baseIcon drawInRect: targetRect fromRect: NSZeroRect operation: NSCompositeSourceOver fraction: 1.0];
-						AIHDrawBadgeImage(badgeImage, targetRect, YES, YES);
-						return YES;
-					}];
-					#if !__has_feature(objc_arc)
-						[badgeImage release];
-					#endif
-				} else {
-					NSLog(@"[AIH] cannot generate badge image");
-				}
+				compositeIcon = [NSImage imageWithSize: [baseIcon size] flipped: NO drawingHandler: ^(NSRect targetRect) {
+					[baseIcon drawInRect: targetRect fromRect: NSZeroRect operation: NSCompositeSourceOver fraction: 1.0];
+					AIHDrawBadgeImage(badgeImage, targetRect, YES, YES);
+					return YES;
+				}];
+				#if !__has_feature(objc_arc)
+					[badgeImage release];
+				#endif
 			} else {
 				NSLog(@"[AIH] cannot identify base icon");
 			}
@@ -170,11 +178,11 @@ static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictio
 		if (bundleIdentifierPointer) {
 			(*bundleIdentifierPointer) = bundleIdentifier;
 		}
-		if (badgePointer) {
-			(*badgePointer) = badge;
-		}
 		if (imagePointer) {
 			(*imagePointer) = image;
+		}
+		if (badgePointer) {
+			(*badgePointer) = badge;
 		}
 		if (compositeIconPointer) {
 			(*compositeIconPointer) = ((compositeIcon) ? compositeIcon : image);
