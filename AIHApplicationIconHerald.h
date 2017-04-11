@@ -16,7 +16,7 @@ extern NSString *_Nonnull AIHImageKey;	// value: NSImage (omit unless you're dra
 
 // displaying other apps' icons
 
-typedef void (^AIHListeningBlock)(NSString *_Nonnull, NSImage *_Nullable);	// parameters: bundle identifier, composite icon
+typedef void (^AIHListeningBlock)(NSString *_Nonnull, NSImage *_Nullable, NSString *_Nullable);	// parameters: bundle identifier, composite icon, badge (you can usually ignore the badge, as it's already rendered in the composite icon)
 
 void AIHSetListeningBlock(AIHListeningBlock _Nullable listeningBlock);	// your listening block will get executed on a dedicated serial queue whenever someone announces a change
 

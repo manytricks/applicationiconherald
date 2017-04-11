@@ -351,10 +351,11 @@ static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictio
 							if ((userName) && [NSUserName() isEqualToString: userName]) {
 								NSString *bundleIdentifier;
 								NSImage *compositeIcon;
-								if (AIHProcessTransportDictionary(transportDictionary, &bundleIdentifier, NULL, NULL, &compositeIcon)) {
+								NSString *badge;
+								if (AIHProcessTransportDictionary(transportDictionary, &bundleIdentifier, NULL, &badge, &compositeIcon)) {
 									@synchronized (self) {
 										if (_listeningBlock) {
-											_listeningBlock(bundleIdentifier, compositeIcon);
+											_listeningBlock(bundleIdentifier, compositeIcon, badge);
 										}
 									}
 								}
