@@ -1,4 +1,5 @@
 #import "AIHApplicationIconHerald.h"
+#import <CommonCrypto/CommonDigest.h>
 
 
 #define AIH_BADGE_HEIGHT_DIVISOR 2.7
@@ -11,7 +12,7 @@ NSString *AIHAnnouncementNotificationName = @"com.manytricks.AIHAnnouncementNoti
 NSString *AIHRequestNotificationName = @"com.manytricks.AIHRequestNotification";
 
 NSString *AIHFormatKey = @"Format";
-NSString *AIHBundleUserNameKey = @"User";
+NSString *AIHBundleUserNameHashKey = @"User";
 NSString *AIHBundleIdentifierKey = @"Identifier";
 NSString *AIHBadgeKey = @"Badge";
 NSString *AIHImageKey = @"Image";
@@ -91,26 +92,48 @@ void AIHDrawBadge(NSString *_Nonnull badge, NSColor *_Nullable textColor, NSColo
 	}
 }
 
+static NSString *AIHTransportStringFromData(NSData *data) {
+	#if __MAC_OS_X_VERSION_MIN_REQUIRED<__MAC_10_9
+		return ([data respondsToSelector: @selector(base64EncodedStringWithOptions:)] ? [data base64EncodedStringWithOptions: 0] : [data base64Encoding]);
+	#else
+		return [data base64EncodedStringWithOptions: 0];
+	#endif
+}
+
+static NSData *AIHCopyDataFromTransportString(NSString *string) {
+	#if __MAC_OS_X_VERSION_MIN_REQUIRED<__MAC_10_9
+		return ([NSData instancesRespondToSelector: @selector(initWithBase64EncodedString:)] ? [[NSData alloc] initWithBase64EncodedString: string options: 0] : [[NSData alloc] initWithBase64Encoding: string]);
+	#else
+		return [[NSData alloc] initWithBase64EncodedString: string options: 0];
+	#endif
+}
+
+static NSString *AIHUserNameHash(void) {
+	NSData *data = [NSUserName() dataUsingEncoding: NSUTF8StringEncoding];
+	if (data) {
+		unsigned char buffer[CC_SHA1_DIGEST_LENGTH];
+		CC_SHA1(data.bytes, (CC_LONG)data.length, buffer);
+		return AIHTransportStringFromData([NSData dataWithBytes: buffer length: CC_SHA1_DIGEST_LENGTH]);
+	}
+	return nil;
+}
+
 static NSDictionary *_Nullable AIHCreateTransportDictionary(NSDictionary *_Nullable iconDictionary) {
 	NSMutableDictionary *transportDictionary = nil;
 	@autoreleasepool {
-		NSString *userName = NSUserName();
-		if (userName) {
+		NSString *userNameHash = AIHUserNameHash();
+		if (userNameHash) {
 			NSString *bundleIdentifier = [iconDictionary objectForKey: AIHBundleIdentifierKey];
 			if ((bundleIdentifier) || (bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier])) {
 				transportDictionary = [[NSMutableDictionary alloc] init];
 				[transportDictionary setObject: @"1" forKey: AIHFormatKey];
-				[transportDictionary setObject: userName forKey: AIHBundleUserNameKey];
+				[transportDictionary setObject: userNameHash forKey: AIHBundleUserNameHashKey];
 				[transportDictionary setObject: bundleIdentifier forKey: AIHBundleIdentifierKey];
 				NSImage *image = [iconDictionary objectForKey: AIHImageKey];
 				if (image) {
 					NSData *imageData = [image TIFFRepresentationUsingCompression: NSTIFFCompressionLZW factor: 0];
 					if (imageData) {
-						#if __MAC_OS_X_VERSION_MIN_REQUIRED<__MAC_10_9
-							NSString *imageString = ([imageData respondsToSelector: @selector(base64EncodedStringWithOptions:)] ? [imageData base64EncodedStringWithOptions: 0] : [imageData base64Encoding]);
-						#else
-							NSString *imageString = [imageData base64EncodedStringWithOptions: 0];
-						#endif
+						NSString *imageString = AIHTransportStringFromData(imageData);
 						if (imageString) {
 							[transportDictionary setObject: imageString forKey: AIHImageKey];
 						} else {
@@ -141,7 +164,7 @@ static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictio
 		NSImage *image = nil;
 		NSString *imageString = [transportDictionary objectForKey: AIHImageKey];
 		if (imageString) {
-			NSData *imageData = [[NSData alloc] initWithBase64EncodedString: imageString options: 0];
+			NSData *imageData = AIHCopyDataFromTransportString(imageString);
 			if (imageData) {
 				image = [[NSImage alloc] initWithData: imageData];
 				if (image) {
@@ -347,8 +370,8 @@ static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictio
 						NSError *error = nil;
 						NSDictionary *transportDictionary = [NSJSONSerialization JSONObjectWithData: transportData options: 0 error: &error];
 						if (transportDictionary) {
-							NSString *userName = [transportDictionary objectForKey: AIHBundleUserNameKey];
-							if ((userName) && [NSUserName() isEqualToString: userName]) {
+							NSString *userNameHash = [transportDictionary objectForKey: AIHBundleUserNameHashKey];
+							if ((userNameHash) && [AIHUserNameHash() isEqualToString: userNameHash]) {
 								NSString *bundleIdentifier;
 								NSImage *image;
 								NSString *badge;
