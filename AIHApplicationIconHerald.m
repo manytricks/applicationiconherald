@@ -92,7 +92,7 @@ void AIHDrawBadge(NSString *_Nonnull badge, NSColor *_Nullable textColor, NSColo
 	}
 }
 
-static NSString *AIHTransportStringFromData(NSData *data) {
+static NSString *_Nonnull AIHTransportStringFromData(NSData *_Nonnull data) {
 	#if __MAC_OS_X_VERSION_MIN_REQUIRED<__MAC_10_9
 		return ([data respondsToSelector: @selector(base64EncodedStringWithOptions:)] ? [data base64EncodedStringWithOptions: 0] : [data base64Encoding]);
 	#else
@@ -100,15 +100,7 @@ static NSString *AIHTransportStringFromData(NSData *data) {
 	#endif
 }
 
-static NSData *AIHCopyDataFromTransportString(NSString *string) {
-	#if __MAC_OS_X_VERSION_MIN_REQUIRED<__MAC_10_9
-		return ([NSData instancesRespondToSelector: @selector(initWithBase64EncodedString:)] ? [[NSData alloc] initWithBase64EncodedString: string options: 0] : [[NSData alloc] initWithBase64Encoding: string]);
-	#else
-		return [[NSData alloc] initWithBase64EncodedString: string options: 0];
-	#endif
-}
-
-static NSString *AIHUserNameHash(void) {
+static NSString *_Nullable AIHUserNameHash(void) {
 	NSData *data = [NSUserName() dataUsingEncoding: NSUTF8StringEncoding];
 	if (data) {
 		unsigned char buffer[CC_SHA1_DIGEST_LENGTH];
@@ -133,12 +125,7 @@ static NSDictionary *_Nullable AIHCreateTransportDictionary(NSDictionary *_Nulla
 				if (image) {
 					NSData *imageData = [image TIFFRepresentationUsingCompression: NSTIFFCompressionLZW factor: 0];
 					if (imageData) {
-						NSString *imageString = AIHTransportStringFromData(imageData);
-						if (imageString) {
-							[transportDictionary setObject: imageString forKey: AIHImageKey];
-						} else {
-							NSLog(@"[AIH] cannot encode image");
-						}
+						[transportDictionary setObject: AIHTransportStringFromData(imageData) forKey: AIHImageKey];
 					} else {
 						NSLog(@"[AIH] cannot compress image");
 					}
@@ -164,7 +151,11 @@ static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictio
 		NSImage *image = nil;
 		NSString *imageString = [transportDictionary objectForKey: AIHImageKey];
 		if (imageString) {
-			NSData *imageData = AIHCopyDataFromTransportString(imageString);
+			#if __MAC_OS_X_VERSION_MIN_REQUIRED<__MAC_10_9
+				NSData *imageData = ([NSData instancesRespondToSelector: @selector(initWithBase64EncodedString:)] ? [[NSData alloc] initWithBase64EncodedString: imageString options: 0] : [[NSData alloc] initWithBase64Encoding: imageString]);
+			#else
+				NSData *imageData = [[NSData alloc] initWithBase64EncodedString: imageString options: 0];
+			#endif
 			if (imageData) {
 				image = [[NSImage alloc] initWithData: imageData];
 				if (image) {
