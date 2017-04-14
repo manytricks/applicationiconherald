@@ -18,54 +18,70 @@ NSString *AIHBadgeKey = @"Badge";
 NSString *AIHImageKey = @"Image";
 
 
-static NSImage *_Nonnull AIHCreateBadgeImage(NSString *_Nonnull badge, NSColor *_Nullable textColor, NSColor *_Nullable backgroundColor) {
-	NSMutableParagraphStyle *paragraphStyle = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
-	[paragraphStyle setAlignment: NSCenterTextAlignment];
-	[paragraphStyle setLineBreakMode: NSLineBreakByTruncatingMiddle];
-	NSDictionary *attributes = [NSDictionary dictionaryWithObjectsAndKeys:
-		((textColor) ? textColor : [NSColor whiteColor]), NSForegroundColorAttributeName,
-		[NSFont systemFontOfSize: AIH_BADGE_PRERENDERED_SIZE], NSFontAttributeName,
-		paragraphStyle, NSParagraphStyleAttributeName,
-	nil];
-	NSRect badgeBounds;
-	badgeBounds.origin = NSZeroPoint;
-	badgeBounds.size = [badge sizeWithAttributes: attributes];
-	if (NSIsEmptyRect(badgeBounds)) {
-		badgeBounds.size = NSMakeSize(AIH_BADGE_PRERENDERED_PADDING, AIH_BADGE_PRERENDERED_PADDING);
-	}
-	badgeBounds.size.width += AIH_BADGE_PRERENDERED_PADDING + AIH_BADGE_PRERENDERED_PADDING + AIH_BADGE_PRERENDERED_SHADOW_BLUR_RADIUS + AIH_BADGE_PRERENDERED_SHADOW_BLUR_RADIUS;
-	badgeBounds.size.height += AIH_BADGE_PRERENDERED_PADDING + AIH_BADGE_PRERENDERED_PADDING + AIH_BADGE_PRERENDERED_SHADOW_BLUR_RADIUS + AIH_BADGE_PRERENDERED_SHADOW_BLUR_RADIUS;
-	if (badgeBounds.size.width<badgeBounds.size.height) {
-		badgeBounds.size.width = badgeBounds.size.height;
-	} else {
-		badgeBounds.size.width += AIH_BADGE_PRERENDERED_PADDING + AIH_BADGE_PRERENDERED_PADDING;
-		CGFloat maximumWidth = badgeBounds.size.height * AIH_BADGE_HEIGHT_DIVISOR;
-		if (badgeBounds.size.width>maximumWidth) {
-			badgeBounds.size.width = maximumWidth;
+NSImage *_Nonnull AIHCreateBadgeImage(NSString *_Nonnull badge, NSColor *_Nullable textColor, NSColor *_Nullable backgroundColor, NSColor *_Nullable borderColor) {
+	NSImage *badgeImage = nil;
+	@autoreleasepool {
+		NSMutableParagraphStyle *paragraphStyle = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
+		[paragraphStyle setAlignment: NSCenterTextAlignment];
+		[paragraphStyle setLineBreakMode: NSLineBreakByTruncatingMiddle];
+		NSDictionary *attributes = [NSDictionary dictionaryWithObjectsAndKeys:
+			((textColor) ? textColor : [NSColor whiteColor]), NSForegroundColorAttributeName,
+			[NSFont systemFontOfSize: AIH_BADGE_PRERENDERED_SIZE], NSFontAttributeName,
+			paragraphStyle, NSParagraphStyleAttributeName,
+		nil];
+		NSRect badgeBounds;
+		badgeBounds.origin = NSZeroPoint;
+		badgeBounds.size = [badge sizeWithAttributes: attributes];
+		if (NSIsEmptyRect(badgeBounds)) {
+			badgeBounds.size = NSMakeSize(AIH_BADGE_PRERENDERED_PADDING, AIH_BADGE_PRERENDERED_PADDING);
 		}
+		badgeBounds.size.width += AIH_BADGE_PRERENDERED_PADDING + AIH_BADGE_PRERENDERED_PADDING + AIH_BADGE_PRERENDERED_SHADOW_BLUR_RADIUS + AIH_BADGE_PRERENDERED_SHADOW_BLUR_RADIUS;
+		badgeBounds.size.height += AIH_BADGE_PRERENDERED_PADDING + AIH_BADGE_PRERENDERED_PADDING + AIH_BADGE_PRERENDERED_SHADOW_BLUR_RADIUS + AIH_BADGE_PRERENDERED_SHADOW_BLUR_RADIUS;
+		if (badgeBounds.size.width<badgeBounds.size.height) {
+			badgeBounds.size.width = badgeBounds.size.height;
+		} else {
+			badgeBounds.size.width += AIH_BADGE_PRERENDERED_PADDING + AIH_BADGE_PRERENDERED_PADDING;
+			CGFloat maximumWidth = badgeBounds.size.height * AIH_BADGE_HEIGHT_DIVISOR;
+			if (badgeBounds.size.width>maximumWidth) {
+				badgeBounds.size.width = maximumWidth;
+			}
+		}
+		badgeImage = [[NSImage alloc] initWithSize: badgeBounds.size];
+		[badgeImage lockFocus];
+		[NSGraphicsContext saveGraphicsState];
+		[((backgroundColor) ? backgroundColor : [NSColor colorWithCalibratedRed: 1.0 green: 0.0 blue: 0.0 alpha: 0.9]) set];
+		NSShadow *shadow = [[NSShadow alloc] init];
+		[shadow setShadowOffset: NSMakeSize(0.0, -1.0)];
+		[shadow setShadowBlurRadius: AIH_BADGE_PRERENDERED_SHADOW_BLUR_RADIUS];
+		[shadow setShadowColor: [NSColor colorWithCalibratedWhite: 0.0 alpha: 0.4]];
+		[shadow set];
+		NSRect innerBadgeRect = NSInsetRect(badgeBounds, AIH_BADGE_PRERENDERED_SHADOW_BLUR_RADIUS, AIH_BADGE_PRERENDERED_SHADOW_BLUR_RADIUS);
+		[[NSBezierPath bezierPathWithRoundedRect: innerBadgeRect xRadius: innerBadgeRect.size.height * 0.5 yRadius: innerBadgeRect.size.height * 0.5] fill];
+		[NSGraphicsContext restoreGraphicsState];
+		if ((borderColor) || (NSAppKitVersionNumber<NSAppKitVersionNumber10_10)) {
+			[NSGraphicsContext saveGraphicsState];
+			[((borderColor) ? borderColor : [NSColor whiteColor]) set];
+			CGFloat borderWidth = floor(innerBadgeRect.size.height * 0.05);
+			if (borderWidth<1) {
+				borderWidth = 1.0;
+			}
+			NSRect borderRect = NSInsetRect(innerBadgeRect, borderWidth * 0.5, borderWidth * 0.5);
+			NSBezierPath *borderPath = [NSBezierPath bezierPathWithRoundedRect: borderRect xRadius: borderRect.size.height * 0.5 yRadius: borderRect.size.height * 0.5];
+			[borderPath setLineWidth: borderWidth];
+			[borderPath stroke];
+			[NSGraphicsContext restoreGraphicsState];
+		}
+		[badge drawInRect: NSInsetRect(badgeBounds, AIH_BADGE_PRERENDERED_PADDING + AIH_BADGE_PRERENDERED_SHADOW_BLUR_RADIUS, AIH_BADGE_PRERENDERED_PADDING + AIH_BADGE_PRERENDERED_SHADOW_BLUR_RADIUS) withAttributes: attributes];
+		[badgeImage unlockFocus];
+		#if !__has_feature(objc_arc)
+			[paragraphStyle release];
+			[shadow release];
+		#endif
 	}
-	CGFloat radius = badgeBounds.size.height / 2.0;
-	NSImage *badgeImage = [[NSImage alloc] initWithSize: badgeBounds.size];
-	[badgeImage lockFocus];
-	[NSGraphicsContext saveGraphicsState];
-	[((backgroundColor) ? backgroundColor : [NSColor colorWithCalibratedRed: 1.0 green: 0.0 blue: 0.0 alpha: 0.9]) set];
-	NSShadow *shadow = [[NSShadow alloc] init];
-	[shadow setShadowOffset: NSMakeSize(0.0, -1.0)];
-	[shadow setShadowBlurRadius: AIH_BADGE_PRERENDERED_SHADOW_BLUR_RADIUS];
-	[shadow setShadowColor: [NSColor colorWithCalibratedWhite: 0.0 alpha: 0.4]];
-	[shadow set];
-	[[NSBezierPath bezierPathWithRoundedRect: NSInsetRect(badgeBounds, AIH_BADGE_PRERENDERED_SHADOW_BLUR_RADIUS, AIH_BADGE_PRERENDERED_SHADOW_BLUR_RADIUS) xRadius: radius yRadius: radius] fill];
-	[NSGraphicsContext restoreGraphicsState];
-	[badge drawInRect: NSInsetRect(badgeBounds, AIH_BADGE_PRERENDERED_PADDING + AIH_BADGE_PRERENDERED_SHADOW_BLUR_RADIUS, AIH_BADGE_PRERENDERED_PADDING + AIH_BADGE_PRERENDERED_SHADOW_BLUR_RADIUS) withAttributes: attributes];
-	[badgeImage unlockFocus];
-	#if !__has_feature(objc_arc)
-		[paragraphStyle release];
-		[shadow release];
-	#endif
 	return badgeImage;
 }
 
-static void AIHDrawBadgeImage(NSImage *_Nonnull badgeImage, NSRect iconRect, BOOL alignWithTopEdge, BOOL alignWithRightEdge) {
+void AIHDrawBadgeImage(NSImage *_Nonnull badgeImage, NSRect iconRect, BOOL alignWithTopEdge, BOOL alignWithRightEdge) {
 	NSSize badgeImageSize = [badgeImage size];
 	NSRect badgeRect;
 	badgeRect.size.height = iconRect.size.height / AIH_BADGE_HEIGHT_DIVISOR;
@@ -80,15 +96,13 @@ static void AIHDrawBadgeImage(NSImage *_Nonnull badgeImage, NSRect iconRect, BOO
 	[badgeImage drawInRect: badgeRect fromRect: NSZeroRect operation: NSCompositeSourceOver fraction: 1.0];
 }
 
-void AIHDrawBadge(NSString *_Nonnull badge, NSColor *_Nullable textColor, NSColor *_Nullable backgroundColor, NSRect iconRect, BOOL alignWithTopEdge, BOOL alignWithRightEdge) {
-	@autoreleasepool {
-		NSImage *badgeImage = AIHCreateBadgeImage(badge, textColor, backgroundColor);
-		if (badgeImage) {
-			AIHDrawBadgeImage(badgeImage, iconRect, alignWithTopEdge, alignWithRightEdge);
-			#if !__has_feature(objc_arc)
-				[badgeImage release];
-			#endif
-		}
+void AIHDrawBadge(NSString *_Nonnull badge, NSColor *_Nullable textColor, NSColor *_Nullable backgroundColor, NSColor *_Nullable borderColor, NSRect iconRect, BOOL alignWithTopEdge, BOOL alignWithRightEdge) {
+	NSImage *badgeImage = AIHCreateBadgeImage(badge, textColor, backgroundColor, borderColor);
+	if (badgeImage) {
+		AIHDrawBadgeImage(badgeImage, iconRect, alignWithTopEdge, alignWithRightEdge);
+		#if !__has_feature(objc_arc)
+			[badgeImage release];
+		#endif
 	}
 }
 
@@ -176,7 +190,7 @@ static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictio
 		if (badge) {
 			NSImage *baseIcon = ((image) ? image : [[[NSRunningApplication runningApplicationsWithBundleIdentifier: bundleIdentifier] firstObject] icon]);
 			if (baseIcon) {
-				NSImage *badgeImage = AIHCreateBadgeImage(badge, nil, nil);
+				NSImage *badgeImage = AIHCreateBadgeImage(badge, nil, nil, nil);
 				compositeIcon = [NSImage imageWithSize: [baseIcon size] flipped: NO drawingHandler: ^(NSRect targetRect) {
 					[baseIcon drawInRect: targetRect fromRect: NSZeroRect operation: NSCompositeSourceOver fraction: 1.0];
 					AIHDrawBadgeImage(badgeImage, targetRect, YES, YES);

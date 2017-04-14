@@ -23,6 +23,8 @@ void AIHSetListeningBlock(AIHListeningBlock _Nullable listeningBlock);	// your l
 NSImage *_Nullable AIHCreateCompositeIcon(NSDictionary *_Nonnull iconDictionary);	// short-circuit the announcement => listening process in cases where you only want to get badged icons rendered, e.g., after getting another app's badge via script (you are responsible for releasing the returned NSImage)
 
 
-// helper
+// drawing your own badges
 
-void AIHDrawBadge(NSString *_Nonnull badge, NSColor *_Nullable textColor, NSColor *_Nullable backgroundColor, NSRect iconRect, BOOL alignWithTopEdge, BOOL alignWithRightEdge);	// draw your own badges
+NSImage *_Nonnull AIHCreateBadgeImage(NSString *_Nonnull badge, NSColor *_Nullable textColor, NSColor *_Nullable backgroundColor, NSColor *_Nullable borderColor);	// create your own badge image (you are responsible for releasing the returned NSImage)
+void AIHDrawBadgeImage(NSImage *_Nonnull badgeImage, NSRect iconRect, BOOL alignWithTopEdge, BOOL alignWithRightEdge);	// draw a badge image
+void AIHDrawBadge(NSString *_Nonnull badge, NSColor *_Nullable textColor, NSColor *_Nullable backgroundColor, NSColor *_Nullable borderColor, NSRect iconRect, BOOL alignWithTopEdge, BOOL alignWithRightEdge);	// convenience: both of the above
