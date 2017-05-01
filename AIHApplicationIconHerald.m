@@ -221,7 +221,7 @@ static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictio
 	return NO;
 }
 
-static void AIHPostNotification(NSString *name, NSString *object) {
+static void AIHPostNotification(NSString *_Nonnull name, NSString *_Nullable object) {
 	[[NSDistributedNotificationCenter defaultCenter] postNotificationName: name object: object userInfo: nil options: NSNotificationDeliverImmediately | NSNotificationPostToAllSessions];
 }
 
