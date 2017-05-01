@@ -58,7 +58,7 @@ NSImage *_Nonnull AIHCreateBadgeImage(NSString *_Nonnull badge, NSColor *_Nullab
 		NSRect innerBadgeRect = NSInsetRect(badgeBounds, AIH_BADGE_PRERENDERED_SHADOW_BLUR_RADIUS, AIH_BADGE_PRERENDERED_SHADOW_BLUR_RADIUS);
 		[[NSBezierPath bezierPathWithRoundedRect: innerBadgeRect xRadius: innerBadgeRect.size.height * 0.5 yRadius: innerBadgeRect.size.height * 0.5] fill];
 		[NSGraphicsContext restoreGraphicsState];
-		if ((borderColor) || (NSAppKitVersionNumber<NSAppKitVersionNumber10_10)) {
+		if ((borderColor) || (NSAppKitVersionNumber<1343/*NSAppKitVersionNumber10_10*/)) {
 			[NSGraphicsContext saveGraphicsState];
 			[((borderColor) ? borderColor : [NSColor whiteColor]) set];
 			CGFloat borderWidth = floor(innerBadgeRect.size.height * 0.05);
@@ -221,6 +221,10 @@ static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictio
 	return NO;
 }
 
+static void AIHPostNotification(NSString *name, NSString *object) {
+	[[NSDistributedNotificationCenter defaultCenter] postNotificationName: name object: object userInfo: nil options: NSNotificationDeliverImmediately | NSNotificationPostToAllSessions];
+}
+
 
 @interface AIHSerialQueueOwner: NSObject
 
@@ -254,13 +258,13 @@ static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictio
 
 @interface AIHAnnouncer: AIHSerialQueueOwner
 
-@end
-
-@implementation AIHAnnouncer
-
 	{
 		NSString *_latestTransportString;
 	}
+
+@end
+
+@implementation AIHAnnouncer
 
 	+ (AIHAnnouncer *)defaultAnnouncer {
 		static AIHAnnouncer *staticDefaultAnnouncer = nil;
@@ -291,7 +295,7 @@ static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictio
 						if (transportString) {
 							@synchronized (self) {
 								_latestTransportString = transportString;
-								[[NSDistributedNotificationCenter defaultCenter] postNotificationName: AIHAnnouncementNotificationName object: transportString userInfo: nil options: NSDistributedNotificationDeliverImmediately | NSDistributedNotificationPostToAllSessions];
+								AIHPostNotification(AIHAnnouncementNotificationName, _latestTransportString);
 							}
 						} else {
 							NSLog(@"[AIH] cannot encode");
@@ -309,7 +313,7 @@ static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictio
 
 	- (void)reannounce: (NSNotification *_Nullable)notification {
 		@synchronized (self) {
-			[[NSDistributedNotificationCenter defaultCenter] postNotificationName: AIHAnnouncementNotificationName object: _latestTransportString userInfo: nil options: NSDistributedNotificationDeliverImmediately | NSDistributedNotificationPostToAllSessions];
+			AIHPostNotification(AIHAnnouncementNotificationName, _latestTransportString);
 		}
 	}
 
@@ -326,13 +330,13 @@ static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictio
 
 @interface AIHListener: AIHSerialQueueOwner
 
-@end
-
-@implementation AIHListener
-
 	{
 		AIHListeningBlock _listeningBlock;
 	}
+
+@end
+
+@implementation AIHListener
 
 	+ (AIHListener *)defaultListener {
 		static AIHListener *staticDefaultListener = nil;
@@ -345,7 +349,6 @@ static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictio
 
 	- (void)setListeningBlock: (AIHListeningBlock _Nullable)listeningBlock {
 		@synchronized (self) {
-			NSDistributedNotificationCenter *distributedNotificationCenter = [NSDistributedNotificationCenter defaultCenter];
 			BOOL didListen = NO;
 			if (_listeningBlock) {
 				#if !__has_feature(objc_arc)
@@ -356,11 +359,11 @@ static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictio
 			_listeningBlock = [listeningBlock copy];
 			if (_listeningBlock) {
 				if (!didListen) {
-					[distributedNotificationCenter addObserver: self selector: @selector(listen:) name: AIHAnnouncementNotificationName object: nil suspensionBehavior: NSNotificationSuspensionBehaviorDeliverImmediately];
+					[[NSDistributedNotificationCenter defaultCenter] addObserver: self selector: @selector(listen:) name: AIHAnnouncementNotificationName object: nil suspensionBehavior: NSNotificationSuspensionBehaviorDeliverImmediately];
 				}
-				[distributedNotificationCenter postNotificationName: AIHRequestNotificationName object: nil userInfo: nil options: NSDistributedNotificationDeliverImmediately | NSDistributedNotificationPostToAllSessions];
+				AIHPostNotification(AIHRequestNotificationName, nil);
 			} else if (didListen) {
-				[distributedNotificationCenter removeObserver: self];
+				[[NSDistributedNotificationCenter defaultCenter] removeObserver: self];
 			}
 		}
 	}
