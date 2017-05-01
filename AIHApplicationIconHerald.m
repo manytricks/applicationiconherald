@@ -294,6 +294,9 @@ static void AIHPostNotification(NSString *_Nonnull name, NSString *_Nullable obj
 						NSString *transportString = [[NSString alloc] initWithData: transportData encoding: NSUTF8StringEncoding];
 						if (transportString) {
 							@synchronized (self) {
+								#if !__has_feature(objc_arc)
+									[_latestTransportString release];
+								#endif
 								_latestTransportString = transportString;
 								AIHPostNotification(AIHAnnouncementNotificationName, _latestTransportString);
 							}
