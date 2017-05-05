@@ -293,13 +293,11 @@ static void AIHPostNotification(NSString *_Nonnull name, NSString *_Nullable obj
 					if (transportData) {
 						NSString *transportString = [[NSString alloc] initWithData: transportData encoding: NSUTF8StringEncoding];
 						if (transportString) {
-							@synchronized (self) {
-								#if !__has_feature(objc_arc)
-									[_latestTransportString release];
-								#endif
-								_latestTransportString = transportString;
-								AIHPostNotification(AIHAnnouncementNotificationName, _latestTransportString);
-							}
+							#if !__has_feature(objc_arc)
+								[_latestTransportString release];
+							#endif
+							_latestTransportString = transportString;
+							AIHPostNotification(AIHAnnouncementNotificationName, _latestTransportString);
 						} else {
 							NSLog(@"[AIH] cannot encode");
 						}
@@ -315,9 +313,9 @@ static void AIHPostNotification(NSString *_Nonnull name, NSString *_Nullable obj
 	}
 
 	- (void)reannounce: (NSNotification *_Nullable)notification {
-		@synchronized (self) {
+		dispatch_async(_serialQueue, ^{
 			AIHPostNotification(AIHAnnouncementNotificationName, _latestTransportString);
-		}
+		});
 	}
 
 	- (void)dealloc {
@@ -351,7 +349,7 @@ static void AIHPostNotification(NSString *_Nonnull name, NSString *_Nullable obj
 	}
 
 	- (void)setListeningBlock: (AIHListeningBlock _Nullable)listeningBlock {
-		@synchronized (self) {
+		dispatch_sync(_serialQueue, ^{
 			BOOL didListen = NO;
 			if (_listeningBlock) {
 				#if !__has_feature(objc_arc)
@@ -368,38 +366,36 @@ static void AIHPostNotification(NSString *_Nonnull name, NSString *_Nullable obj
 			} else if (didListen) {
 				[[NSDistributedNotificationCenter defaultCenter] removeObserver: self];
 			}
-		}
+		});
 	}
 
 	- (void)listen: (NSNotification *_Nullable)notification {
 		NSString *transportString = [notification object];
 		if ([transportString length]>0) {
 			dispatch_async(_serialQueue, ^{
-				@autoreleasepool {
-					NSData *transportData = [transportString dataUsingEncoding: NSUTF8StringEncoding];
-					if (transportData) {
-						NSError *error = nil;
-						NSDictionary *transportDictionary = [NSJSONSerialization JSONObjectWithData: transportData options: 0 error: &error];
-						if (transportDictionary) {
-							NSString *userNameHash = [transportDictionary objectForKey: AIHBundleUserNameHashKey];
-							if ((userNameHash) && [AIHUserNameHash() isEqualToString: userNameHash]) {
-								NSString *bundleIdentifier;
-								NSImage *image;
-								NSString *badge;
-								NSImage *compositeIcon;
-								if (AIHProcessTransportDictionary(transportDictionary, &bundleIdentifier, &image, &badge, &compositeIcon)) {
-									@synchronized (self) {
-										if (_listeningBlock) {
-											_listeningBlock(bundleIdentifier, image, badge, compositeIcon);
-										}
+				if (_listeningBlock) {
+					@autoreleasepool {
+						NSData *transportData = [transportString dataUsingEncoding: NSUTF8StringEncoding];
+						if (transportData) {
+							NSError *error = nil;
+							NSDictionary *transportDictionary = [NSJSONSerialization JSONObjectWithData: transportData options: 0 error: &error];
+							if (transportDictionary) {
+								NSString *userNameHash = [transportDictionary objectForKey: AIHBundleUserNameHashKey];
+								if ((userNameHash) && [AIHUserNameHash() isEqualToString: userNameHash]) {
+									NSString *bundleIdentifier;
+									NSImage *image;
+									NSString *badge;
+									NSImage *compositeIcon;
+									if (AIHProcessTransportDictionary(transportDictionary, &bundleIdentifier, &image, &badge, &compositeIcon)) {
+										_listeningBlock(bundleIdentifier, image, badge, compositeIcon);
 									}
 								}
+							} else {
+								NSLog(@"[AIH] cannot deserialize: %@", error);
 							}
 						} else {
-							NSLog(@"[AIH] cannot deserialize: %@", error);
+							NSLog(@"[AIH] cannot decode");
 						}
-					} else {
-						NSLog(@"[AIH] cannot decode");
 					}
 				}
 			});
