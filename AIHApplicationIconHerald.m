@@ -17,6 +17,9 @@ NSString *AIHBundleIdentifierKey = @"Identifier";
 NSString *AIHBadgeKey = @"Badge";
 NSString *AIHImageKey = @"Image";
 
+static NSString *AIHDisableAnnouncingUserDefaultKey = @"com.manytricks.AIHDisableAnnouncing";
+static NSString *AIHDisableListeningUserDefaultKey = @"com.manytricks.AIHDisableListening";
+
 
 NSImage *_Nonnull AIHCreateBadgeImage(NSString *_Nonnull badge, NSColor *_Nullable textColor, NSColor *_Nullable backgroundColor, NSColor *_Nullable borderColor) {
 	NSImage *badgeImage = nil;
@@ -284,38 +287,42 @@ static void AIHPostNotification(NSString *_Nonnull name, NSString *_Nullable obj
 	}
 
 	- (void)announce: (NSDictionary *_Nullable)iconDictionary {
-		dispatch_async(_serialQueue, ^{
-			NSDictionary *transportDictionary = AIHCreateTransportDictionary(iconDictionary);
-			if (transportDictionary) {
-				@autoreleasepool {
-					NSError *error = nil;
-					NSData *transportData = [NSJSONSerialization dataWithJSONObject: transportDictionary options: 0 error: &error];
-					if (transportData) {
-						NSString *transportString = [[NSString alloc] initWithData: transportData encoding: NSUTF8StringEncoding];
-						if (transportString) {
-							#if !__has_feature(objc_arc)
-								[_latestTransportString release];
-							#endif
-							_latestTransportString = transportString;
-							AIHPostNotification(AIHAnnouncementNotificationName, _latestTransportString);
+		if (![[NSUserDefaults standardUserDefaults] boolForKey: AIHDisableAnnouncingUserDefaultKey]) {
+			dispatch_async(_serialQueue, ^{
+				NSDictionary *transportDictionary = AIHCreateTransportDictionary(iconDictionary);
+				if (transportDictionary) {
+					@autoreleasepool {
+						NSError *error = nil;
+						NSData *transportData = [NSJSONSerialization dataWithJSONObject: transportDictionary options: 0 error: &error];
+						if (transportData) {
+							NSString *transportString = [[NSString alloc] initWithData: transportData encoding: NSUTF8StringEncoding];
+							if (transportString) {
+								#if !__has_feature(objc_arc)
+									[_latestTransportString release];
+								#endif
+								_latestTransportString = transportString;
+								AIHPostNotification(AIHAnnouncementNotificationName, _latestTransportString);
+							} else {
+								NSLog(@"[AIH] cannot encode");
+							}
 						} else {
-							NSLog(@"[AIH] cannot encode");
+							NSLog(@"[AIH] cannot serialize: %@", error);
 						}
-					} else {
-						NSLog(@"[AIH] cannot serialize: %@", error);
 					}
+					#if !__has_feature(objc_arc)
+						[transportDictionary release];
+					#endif
 				}
-				#if !__has_feature(objc_arc)
-					[transportDictionary release];
-				#endif
-			}
-		});
+			});
+		}
 	}
 
 	- (void)reannounce: (NSNotification *_Nullable)notification {
-		dispatch_async(_serialQueue, ^{
-			AIHPostNotification(AIHAnnouncementNotificationName, _latestTransportString);
-		});
+		if (![[NSUserDefaults standardUserDefaults] boolForKey: AIHDisableAnnouncingUserDefaultKey]) {
+			dispatch_async(_serialQueue, ^{
+				AIHPostNotification(AIHAnnouncementNotificationName, _latestTransportString);
+			});
+		}
 	}
 
 	- (void)dealloc {
@@ -370,35 +377,37 @@ static void AIHPostNotification(NSString *_Nonnull name, NSString *_Nullable obj
 	}
 
 	- (void)listen: (NSNotification *_Nullable)notification {
-		NSString *transportString = [notification object];
-		if ([transportString length]>0) {
-			dispatch_async(_serialQueue, ^{
-				if (_listeningBlock) {
-					@autoreleasepool {
-						NSData *transportData = [transportString dataUsingEncoding: NSUTF8StringEncoding];
-						if (transportData) {
-							NSError *error = nil;
-							NSDictionary *transportDictionary = [NSJSONSerialization JSONObjectWithData: transportData options: 0 error: &error];
-							if (transportDictionary) {
-								NSString *userNameHash = [transportDictionary objectForKey: AIHBundleUserNameHashKey];
-								if ((userNameHash) && [AIHUserNameHash() isEqualToString: userNameHash]) {
-									NSString *bundleIdentifier;
-									NSImage *image;
-									NSString *badge;
-									NSImage *compositeIcon;
-									if (AIHProcessTransportDictionary(transportDictionary, &bundleIdentifier, &image, &badge, &compositeIcon)) {
-										_listeningBlock(bundleIdentifier, image, badge, compositeIcon);
+		if (![[NSUserDefaults standardUserDefaults] boolForKey: AIHDisableListeningUserDefaultKey]) {
+			NSString *transportString = [notification object];
+			if ([transportString length]>0) {
+				dispatch_async(_serialQueue, ^{
+					if (_listeningBlock) {
+						@autoreleasepool {
+							NSData *transportData = [transportString dataUsingEncoding: NSUTF8StringEncoding];
+							if (transportData) {
+								NSError *error = nil;
+								NSDictionary *transportDictionary = [NSJSONSerialization JSONObjectWithData: transportData options: 0 error: &error];
+								if (transportDictionary) {
+									NSString *userNameHash = [transportDictionary objectForKey: AIHBundleUserNameHashKey];
+									if ((userNameHash) && [AIHUserNameHash() isEqualToString: userNameHash]) {
+										NSString *bundleIdentifier;
+										NSImage *image;
+										NSString *badge;
+										NSImage *compositeIcon;
+										if (AIHProcessTransportDictionary(transportDictionary, &bundleIdentifier, &image, &badge, &compositeIcon)) {
+											_listeningBlock(bundleIdentifier, image, badge, compositeIcon);
+										}
 									}
+								} else {
+									NSLog(@"[AIH] cannot deserialize: %@", error);
 								}
 							} else {
-								NSLog(@"[AIH] cannot deserialize: %@", error);
+								NSLog(@"[AIH] cannot decode");
 							}
-						} else {
-							NSLog(@"[AIH] cannot decode");
 						}
 					}
-				}
-			});
+				});
+			}
 		}
 	}
 
