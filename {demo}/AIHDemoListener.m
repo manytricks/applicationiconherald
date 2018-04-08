@@ -93,13 +93,13 @@
 		[notificationCenter addObserver: self selector: @selector(otherApplicationDidTerminate:) name: NSWorkspaceDidTerminateApplicationNotification object: nil];
 
 		// update when an app announces an icon via AIH (we store those in a dictionary and use them instead of regular icons -- see above)
-		AIHSetListeningBlock(^(NSString *bundleIdentifier, NSImage *baseImage, NSString *badge, NSImage *compositedIcon) {
+		AIHSetListeningBlock(^(NSString *bundleIdentifier, NSImage *baseImage, NSString *badge, NSImage *compositeIcon) {
 			dispatch_async(dispatch_get_main_queue(), ^{
-				if (compositedIcon) {
+				if (compositeIcon) {
 					if (!_heraldedIconsByBundleIdentifier) {
 						_heraldedIconsByBundleIdentifier = [NSMutableDictionary dictionary];
 					}
-					[_heraldedIconsByBundleIdentifier setObject: compositedIcon forKey: bundleIdentifier];
+					[_heraldedIconsByBundleIdentifier setObject: compositeIcon forKey: bundleIdentifier];
 				} else {
 					[_heraldedIconsByBundleIdentifier removeObjectForKey: bundleIdentifier];
 				}
