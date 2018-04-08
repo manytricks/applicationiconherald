@@ -47,7 +47,7 @@
 	- (void)updateIconView {
 		NSMutableArray <NSImage *> *icons = [NSMutableArray array];
 
-		// collect icons for (regular) running applications and use heralded icons if available
+		// collect icons for (regular) running applications; use heralded icons if available
 		NSRunningApplication *currentRunningApplication = [NSRunningApplication currentApplication];
 		for (NSRunningApplication *runningApplication in [NSWorkspace sharedWorkspace].runningApplications) {
 			if ((runningApplication.activationPolicy==NSApplicationActivationPolicyRegular) && (![currentRunningApplication isEqual: runningApplication])) {
