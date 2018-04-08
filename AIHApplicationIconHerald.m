@@ -252,7 +252,9 @@ static void AIHPostNotification(NSString *_Nonnull name, NSString *_Nullable obj
 			if (_serialQueue) {
 				dispatch_release(_serialQueue);
 			}
-			[super dealloc];
+			#if !__has_feature(objc_arc)
+				[super dealloc];
+			#endif
 		}
 	#endif
 
@@ -329,8 +331,8 @@ static void AIHPostNotification(NSString *_Nonnull name, NSString *_Nullable obj
 		[[NSDistributedNotificationCenter defaultCenter] removeObserver: self];
 		#if !__has_feature(objc_arc)
 			[_latestTransportString release];
+			[super dealloc];
 		#endif
-		[super dealloc];
 	}
 
 @end
@@ -418,7 +420,9 @@ static void AIHPostNotification(NSString *_Nonnull name, NSString *_Nullable obj
 				[_listeningBlock release];
 			#endif
 		}
-		[super dealloc];
+		#if !__has_feature(objc_arc)
+			[super dealloc];
+		#endif
 	}
 
 @end
