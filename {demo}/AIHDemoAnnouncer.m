@@ -16,21 +16,34 @@
 	}
 
 	- (IBAction)announceBadge: (id)sender {
-		AIHAnnounceBadgeCount(arc4random_uniform(9) + 1);
+		NSUInteger randomBadgeCount = arc4random_uniform(9) + 1;
+		NSString *randomBadge = [NSString stringWithFormat: @"%lu", (unsigned long)randomBadgeCount];
+		NSApp.dockTile.badgeLabel = randomBadge;
+		NSApp.applicationIconImage = nil;
+		AIHAnnounceBadgeCount(randomBadgeCount);	// alternatively, AIHAnnounceBadge(randomBadge);
 	}
 
 	- (IBAction)announceImage: (id)sender {
-		AIHAnnounceImage([NSImage imageNamed: NSImageNameUser]);
+		NSImage *image = [NSImage imageNamed: NSImageNameUser];
+		NSApp.dockTile.badgeLabel = nil;
+		NSApp.applicationIconImage = image;
+		AIHAnnounceImage(image);
 	}
 
 	- (IBAction)announceBadgeAndImage: (id)sender {
+		NSString *badge = @"AIH";
+		NSImage *image = [NSImage imageNamed: NSImageNameAdvanced];
+		NSApp.dockTile.badgeLabel = badge;
+		NSApp.applicationIconImage = image;
 		AIHAnnounceIcon([NSDictionary dictionaryWithObjectsAndKeys:
-			@"AIH", AIHBadgeKey,
-			[NSImage imageNamed: NSImageNameAdvanced], AIHImageKey,
+			badge, AIHBadgeKey,
+			image, AIHImageKey,
 		nil]);
 	}
 
 	- (IBAction)clear: (id)sender {
+		NSApp.dockTile.badgeLabel = nil;
+		NSApp.applicationIconImage = nil;
 		AIHAnnounceIcon(nil);
 	}
 
