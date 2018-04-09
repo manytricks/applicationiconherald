@@ -11,7 +11,7 @@
 
 	- (void)drawRect: (NSRect)rect {
 		NSArray <NSImage *> *icons = self.icons;
-		NSUInteger numberOfIcons = [icons count];
+		NSUInteger numberOfIcons = icons.count;
 		if (numberOfIcons>0) {
 			CGFloat size = rect.size.width;
 			if (numberOfIcons>1) {
@@ -77,7 +77,7 @@
 	}
 
 	- (void)otherApplicationDidTerminate: (NSNotification *)notification {
-		NSString *bundleIdentifier = ((NSRunningApplication *)[[notification userInfo] objectForKey: NSWorkspaceApplicationKey]).bundleIdentifier;
+		NSString *bundleIdentifier = ((NSRunningApplication *)[notification.userInfo objectForKey: NSWorkspaceApplicationKey]).bundleIdentifier;
 		if (bundleIdentifier) {
 			[_heraldedIconsByBundleIdentifier removeObjectForKey: bundleIdentifier];
 		}
