@@ -88,7 +88,7 @@
 		[self updateIconView];
 
 		// upate when an app launches or quits
-		NSNotificationCenter *notificationCenter = [[NSWorkspace sharedWorkspace] notificationCenter];
+		NSNotificationCenter *notificationCenter = [NSWorkspace sharedWorkspace].notificationCenter;
 		[notificationCenter addObserver: self selector: @selector(otherApplicationDidLaunch:) name: NSWorkspaceDidLaunchApplicationNotification object: nil];
 		[notificationCenter addObserver: self selector: @selector(otherApplicationDidTerminate:) name: NSWorkspaceDidTerminateApplicationNotification object: nil];
 
@@ -113,7 +113,7 @@
 	}
 
 	- (NSApplicationTerminateReply)applicationShouldTerminate: (NSApplication *)application {
-		[[[NSWorkspace sharedWorkspace] notificationCenter] removeObserver: self];
+		[[NSWorkspace sharedWorkspace].notificationCenter removeObserver: self];
 		AIHSetListeningBlock(nil);
 		return NSTerminateNow;
 	}
