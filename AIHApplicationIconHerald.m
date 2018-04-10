@@ -8,11 +8,11 @@
 #define AIH_BADGE_PRERENDERED_SHADOW_BLUR_RADIUS 3.0
 
 
-NSString *AIHAnnouncementNotificationName = @"com.manytricks.AIHAnnouncementNotification";
-NSString *AIHRequestNotificationName = @"com.manytricks.AIHRequestNotification";
+static NSString *AIHAnnouncementNotificationName = @"com.manytricks.AIHAnnouncementNotification";
+static NSString *AIHRequestNotificationName = @"com.manytricks.AIHRequestNotification";
 
-NSString *AIHFormatKey = @"Format";
-NSString *AIHBundleUserNameHashKey = @"User";
+static NSString *AIHFormatKey = @"Format";
+static NSString *AIHUserNameHashKey = @"User";
 NSString *AIHBundleIdentifierKey = @"Identifier";
 NSString *AIHBadgeKey = @"Badge";
 NSString *AIHImageKey = @"Image";
@@ -136,7 +136,7 @@ static NSDictionary *_Nullable AIHCreateTransportDictionary(NSDictionary *_Nulla
 			if ((bundleIdentifier) || (bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier])) {
 				transportDictionary = [[NSMutableDictionary alloc] init];
 				[transportDictionary setObject: @"1" forKey: AIHFormatKey];
-				[transportDictionary setObject: userNameHash forKey: AIHBundleUserNameHashKey];
+				[transportDictionary setObject: userNameHash forKey: AIHUserNameHashKey];
 				[transportDictionary setObject: bundleIdentifier forKey: AIHBundleIdentifierKey];
 				NSImage *image = [iconDictionary objectForKey: AIHImageKey];
 				if (image) {
@@ -390,7 +390,7 @@ static void AIHPostNotification(NSString *_Nonnull name, NSString *_Nullable obj
 								NSError *error = nil;
 								NSDictionary *transportDictionary = [NSJSONSerialization JSONObjectWithData: transportData options: 0 error: &error];
 								if (transportDictionary) {
-									NSString *userNameHash = [transportDictionary objectForKey: AIHBundleUserNameHashKey];
+									NSString *userNameHash = [transportDictionary objectForKey: AIHUserNameHashKey];
 									if ((userNameHash) && [AIHUserNameHash() isEqualToString: userNameHash]) {
 										NSString *bundleIdentifier;
 										NSImage *image;
