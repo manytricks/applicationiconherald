@@ -18,7 +18,7 @@ extern NSString *_Nonnull AIHImageKey;	// value: NSImage (omit unless you're dra
 
 typedef void (^AIHListeningBlock)(NSString *_Nonnull, NSImage *_Nullable, NSString *_Nullable, NSImage *_Nullable);	// parameters: bundle identifier, base icon (no badge, often nil), badge (or nil), composite icon (includes badge, nil when both base icon and badge are nil)
 
-void AIHSetListeningBlock(AIHListeningBlock _Nullable listeningBlock);	// your listening block will get executed on a dedicated serial queue whenever someone announces a change
+void AIHSetListeningBlock(AIHListeningBlock _Nullable listeningBlock);	// think of your listening block as similar to a delegate method; it will get executed on a dedicated serial queue whenever an app announces a change via one of the AIHAnnounce...() functions
 
 NSImage *_Nullable AIHCreateCompositeIcon(NSDictionary *_Nonnull iconDictionary);	// short-circuit the announcement => listening process in cases where you only want to get badged icons rendered, e.g., after getting another app's badge via script (you are responsible for releasing the returned NSImage)
 

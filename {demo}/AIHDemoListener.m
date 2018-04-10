@@ -47,7 +47,7 @@
 	- (void)updateIconView {
 		NSMutableArray <NSImage *> *icons = [NSMutableArray array];
 
-		// collect icons for (regular) running applications; use heralded icons if available
+		// collect icons for (regular) running applications; use cached heralded icons if available
 		NSRunningApplication *currentRunningApplication = [NSRunningApplication currentApplication];
 		for (NSRunningApplication *runningApplication in [NSWorkspace sharedWorkspace].runningApplications) {
 			if ((runningApplication.activationPolicy==NSApplicationActivationPolicyRegular) && (![currentRunningApplication isEqual: runningApplication])) {
@@ -92,7 +92,7 @@
 		[notificationCenter addObserver: self selector: @selector(otherApplicationDidLaunch:) name: NSWorkspaceDidLaunchApplicationNotification object: nil];
 		[notificationCenter addObserver: self selector: @selector(otherApplicationDidTerminate:) name: NSWorkspaceDidTerminateApplicationNotification object: nil];
 
-		// update when an app announces an icon via AIH (we store those in a dictionary and use them instead of regular icons -- see above)
+		// update in response to AIH announcements after caching heralded composite icons (cf. -updateIconView)
 		AIHSetListeningBlock(^(NSString *bundleIdentifier, NSImage *baseImage, NSString *badge, NSImage *compositeIcon) {
 			dispatch_async(dispatch_get_main_queue(), ^{
 				if (compositeIcon) {
