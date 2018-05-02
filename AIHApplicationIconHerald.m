@@ -127,7 +127,7 @@ static NSString *_Nullable AIHUserNameHash(void) {
 	return nil;
 }
 
-static NSDictionary *_Nullable AIHCreateTransportDictionary(NSDictionary *_Nullable iconDictionary) {
+static NSDictionary *_Nullable AIHCreateTransportDictionary(NSDictionary *_Nullable iconDictionary, BOOL compressImage) {
 	NSMutableDictionary *transportDictionary = nil;
 	@autoreleasepool {
 		NSString *userNameHash = AIHUserNameHash();
@@ -140,11 +140,15 @@ static NSDictionary *_Nullable AIHCreateTransportDictionary(NSDictionary *_Nulla
 				[transportDictionary setObject: bundleIdentifier forKey: AIHBundleIdentifierKey];
 				NSImage *image = [iconDictionary objectForKey: AIHImageKey];
 				if (image) {
-					NSData *imageData = [image TIFFRepresentationUsingCompression: NSTIFFCompressionLZW factor: 0];
-					if (imageData) {
-						[transportDictionary setObject: AIHTransportStringFromData(imageData) forKey: AIHImageKey];
+					if (compressImage) {
+						NSData *imageData = [image TIFFRepresentationUsingCompression: NSTIFFCompressionLZW factor: 0];
+						if (imageData) {
+							[transportDictionary setObject: AIHTransportStringFromData(imageData) forKey: AIHImageKey];
+						} else {
+							NSLog(@"[AIH] cannot compress image");
+						}
 					} else {
-						NSLog(@"[AIH] cannot compress image");
+						[transportDictionary setObject: image forKey: AIHImageKey];
 					}
 				}
 				NSString *badge = [iconDictionary objectForKey: AIHBadgeKey];
@@ -165,11 +169,10 @@ static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictio
 	NSString *bundleIdentifier = [transportDictionary objectForKey: AIHBundleIdentifierKey];
 	if (bundleIdentifier) {
 		NSImage *compositeIcon = nil;
-		NSImage *image = nil;
-		NSString *imageString = [transportDictionary objectForKey: AIHImageKey];
-		if (imageString) {
+		id image = [transportDictionary objectForKey: AIHImageKey];
+		if ((image) && (![image isKindOfClass: [NSImage class]])) {
 			#if __MAC_OS_X_VERSION_MIN_REQUIRED<__MAC_10_9
-				NSData *imageData = ([NSData instancesRespondToSelector: @selector(initWithBase64EncodedString:)] ? [[NSData alloc] initWithBase64EncodedString: imageString options: 0] : [[NSData alloc] initWithBase64Encoding: imageString]);
+				NSData *imageData = ([NSData instancesRespondToSelector: @selector(initWithBase64EncodedString:)] ? [[NSData alloc] initWithBase64EncodedString: image options: 0] : [[NSData alloc] initWithBase64Encoding: image]);
 			#else
 				NSData *imageData = [[NSData alloc] initWithBase64EncodedString: imageString options: 0];
 			#endif
@@ -180,7 +183,7 @@ static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictio
 						[image autorelease];
 					#endif
 				} else {
-					NSLog(@"[AIH] cannot generate image");
+					NSLog(@"[AIH] cannot decompress image");
 				}
 				#if !__has_feature(objc_arc)
 					[imageData release];
@@ -291,7 +294,7 @@ static void AIHPostNotification(NSString *_Nonnull name, NSString *_Nullable obj
 	- (void)announce: (NSDictionary *_Nullable)iconDictionary {
 		if (![[NSUserDefaults standardUserDefaults] boolForKey: AIHDisableAnnouncingUserDefaultKey]) {
 			dispatch_async(_serialQueue, ^{
-				NSDictionary *transportDictionary = AIHCreateTransportDictionary(iconDictionary);
+				NSDictionary *transportDictionary = AIHCreateTransportDictionary(iconDictionary, YES);
 				if (transportDictionary) {
 					@autoreleasepool {
 						NSError *error = nil;
@@ -457,7 +460,7 @@ void AIHSetListeningBlock(AIHListeningBlock _Nullable listeningBlock) {
 NSImage *_Nullable AIHCreateCompositeIcon(NSDictionary *_Nonnull iconDictionary) {
 	NSImage *compositeIcon = nil;
 	@autoreleasepool {
-		NSDictionary *transportDictionary = AIHCreateTransportDictionary(iconDictionary);
+		NSDictionary *transportDictionary = AIHCreateTransportDictionary(iconDictionary, NO);
 		if (transportDictionary) {
 			AIHProcessTransportDictionary(transportDictionary, NULL, NULL, NULL, &compositeIcon);
 			#if !__has_feature(objc_arc)
