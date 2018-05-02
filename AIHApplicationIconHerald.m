@@ -170,7 +170,7 @@ static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictio
 	if (bundleIdentifier) {
 		NSImage *compositeIcon = nil;
 		id image = [transportDictionary objectForKey: AIHImageKey];
-		if ((image) && (![image isKindOfClass: [NSImage class]])) {
+		if ([image isKindOfClass: [NSString class]]) {
 			#if __MAC_OS_X_VERSION_MIN_REQUIRED<__MAC_10_9
 				NSData *imageData = ([NSData instancesRespondToSelector: @selector(initWithBase64EncodedString:)] ? [[NSData alloc] initWithBase64EncodedString: image options: 0] : [[NSData alloc] initWithBase64Encoding: image]);
 			#else
@@ -189,6 +189,7 @@ static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictio
 					[imageData release];
 				#endif
 			} else {
+				image = nil;
 				NSLog(@"[AIH] cannot decode image");
 			}
 		}
