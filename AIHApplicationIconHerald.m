@@ -174,7 +174,7 @@ static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictio
 			#if __MAC_OS_X_VERSION_MIN_REQUIRED<__MAC_10_9
 				NSData *imageData = ([NSData instancesRespondToSelector: @selector(initWithBase64EncodedString:)] ? [[NSData alloc] initWithBase64EncodedString: image options: 0] : [[NSData alloc] initWithBase64Encoding: image]);
 			#else
-				NSData *imageData = [[NSData alloc] initWithBase64EncodedString: imageString options: 0];
+				NSData *imageData = [[NSData alloc] initWithBase64EncodedString: image options: 0];
 			#endif
 			if (imageData) {
 				image = [[NSImage alloc] initWithData: imageData];
