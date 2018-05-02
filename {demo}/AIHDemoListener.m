@@ -22,7 +22,7 @@
 			}
 			NSUInteger offset = 0;
 			for (NSImage *icon in icons) {
-				[icon drawInRect: NSMakeRect(rect.origin.x + (rect.size.width - numberOfIcons * size) / 2 + offset * size, rect.origin.y + (rect.size.height - size) / 2, size, size) fromRect: NSZeroRect operation: NSCompositeSourceOver fraction: 1.0];
+				[icon drawInRect: NSMakeRect(rect.origin.x + (rect.size.width - numberOfIcons * size) / 2 + offset * size, rect.origin.y + (rect.size.height - size) / 2, size, size) fromRect: NSZeroRect operation: NSCompositingOperationSourceOver fraction: 1.0];
 				offset++;
 			}
 		}

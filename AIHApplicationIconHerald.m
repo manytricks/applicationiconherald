@@ -25,7 +25,7 @@ NSImage *_Nonnull AIHCreateBadgeImage(NSString *_Nonnull badge, NSColor *_Nullab
 	NSImage *badgeImage = nil;
 	@autoreleasepool {
 		NSMutableParagraphStyle *paragraphStyle = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
-		[paragraphStyle setAlignment: NSCenterTextAlignment];
+		[paragraphStyle setAlignment: NSTextAlignmentCenter];
 		[paragraphStyle setLineBreakMode: NSLineBreakByTruncatingMiddle];
 		NSDictionary *attributes = [NSDictionary dictionaryWithObjectsAndKeys:
 			((textColor) ? textColor : [NSColor whiteColor]), NSForegroundColorAttributeName,
@@ -96,7 +96,7 @@ void AIHDrawBadgeImage(NSImage *_Nonnull badgeImage, NSRect iconRect, BOOL align
 	if (alignWithRightEdge) {
 		badgeRect.origin.x += iconRect.size.width - badgeRect.size.width;
 	}
-	[badgeImage drawInRect: badgeRect fromRect: NSZeroRect operation: NSCompositeSourceOver fraction: 1.0];
+	[badgeImage drawInRect: badgeRect fromRect: NSZeroRect operation: NSCompositingOperationSourceOver fraction: 1.0];
 }
 
 void AIHDrawBadge(NSString *_Nonnull badge, NSColor *_Nullable textColor, NSColor *_Nullable backgroundColor, NSColor *_Nullable borderColor, NSRect iconRect, BOOL alignWithTopEdge, BOOL alignWithRightEdge) {
@@ -198,7 +198,7 @@ static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictio
 			if (baseIcon) {
 				NSImage *badgeImage = AIHCreateBadgeImage(badge, nil, nil, nil);
 				compositeIcon = [NSImage imageWithSize: [baseIcon size] flipped: NO drawingHandler: ^(NSRect targetRect) {
-					[baseIcon drawInRect: targetRect fromRect: NSZeroRect operation: NSCompositeSourceOver fraction: 1.0];
+					[baseIcon drawInRect: targetRect fromRect: NSZeroRect operation: NSCompositingOperationSourceOver fraction: 1.0];
 					AIHDrawBadgeImage(badgeImage, targetRect, YES, YES);
 					return YES;
 				}];
