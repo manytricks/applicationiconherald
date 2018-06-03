@@ -20,6 +20,10 @@ NSString *AIHImageKey = @"Image";
 static NSString *AIHDisableAnnouncingUserDefaultKey = @"com.manytricks.AIHDisableAnnouncing";
 static NSString *AIHDisableListeningUserDefaultKey = @"com.manytricks.AIHDisableListening";
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED<101200
+	static NSCompositingOperation NSCompositingOperationSourceOver = NSCompositeSourceOver;
+#endif
+
 
 NSImage *_Nonnull AIHCreateBadgeImage(NSString *_Nonnull badge, NSColor *_Nullable textColor, NSColor *_Nullable backgroundColor, NSColor *_Nullable borderColor) {
 	NSImage *badgeImage = nil;
