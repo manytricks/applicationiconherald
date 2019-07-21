@@ -9,9 +9,9 @@ void AIHAnnounceImage(NSImage *_Nullable image);	// if you set your icon image a
 
 void AIHAnnounceIcon(NSDictionary *_Nullable iconDictionary);	// if you want to announce both badge and icon image, or if you need to specify a bundle identifier (e.g., because you call this from a helper that is its own separate main bundle), populate the dictionary using some of the keys listed below
 
-extern NSString *_Nonnull AIHBundleIdentifierKey;	// value: NSString (main bundle's identifier if omitted)
-extern NSString *_Nonnull AIHBadgeKey;	// value: NSString (omit if there's no badge or if the badge is already rendered in your icon)
-extern NSString *_Nonnull AIHImageKey;	// value: NSImage (omit unless you're drawing a custom icon image at runtime)
+extern NSString *const _Nonnull AIHBundleIdentifierKey;	// value: NSString (main bundle's identifier if omitted)
+extern NSString *const _Nonnull AIHBadgeKey;	// value: NSString (omit if there's no badge or if the badge is already rendered in your icon)
+extern NSString *const _Nonnull AIHImageKey;	// value: NSImage (omit unless you're drawing a custom icon image at runtime)
 
 
 // displaying other apps' icons

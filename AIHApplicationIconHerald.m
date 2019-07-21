@@ -8,21 +8,17 @@
 #define AIH_BADGE_PRERENDERED_SHADOW_BLUR_RADIUS 3.0
 
 
-static NSString *AIHAnnouncementNotificationName = @"com.manytricks.AIHAnnouncementNotification";
-static NSString *AIHRequestNotificationName = @"com.manytricks.AIHRequestNotification";
+static NSString *const AIHAnnouncementNotificationName = @"com.manytricks.AIHAnnouncementNotification";
+static NSString *const AIHRequestNotificationName = @"com.manytricks.AIHRequestNotification";
 
-static NSString *AIHFormatKey = @"Format";
-static NSString *AIHUserNameHashKey = @"User";
-NSString *AIHBundleIdentifierKey = @"Identifier";
-NSString *AIHBadgeKey = @"Badge";
-NSString *AIHImageKey = @"Image";
+static NSString *const AIHFormatKey = @"Format";
+static NSString *const AIHUserNameHashKey = @"User";
+NSString *const AIHBundleIdentifierKey = @"Identifier";
+NSString *const AIHBadgeKey = @"Badge";
+NSString *const AIHImageKey = @"Image";
 
-static NSString *AIHDisableAnnouncingUserDefaultKey = @"com.manytricks.AIHDisableAnnouncing";
-static NSString *AIHDisableListeningUserDefaultKey = @"com.manytricks.AIHDisableListening";
-
-#if __MAC_OS_X_VERSION_MAX_ALLOWED<101200
-	static NSCompositingOperation NSCompositingOperationSourceOver = NSCompositeSourceOver;
-#endif
+static NSString *const AIHDisableAnnouncingUserDefaultKey = @"com.manytricks.AIHDisableAnnouncing";
+static NSString *const AIHDisableListeningUserDefaultKey = @"com.manytricks.AIHDisableListening";
 
 
 NSImage *_Nonnull AIHCreateBadgeImage(NSString *_Nonnull badge, NSColor *_Nullable textColor, NSColor *_Nullable backgroundColor, NSColor *_Nullable borderColor) {
