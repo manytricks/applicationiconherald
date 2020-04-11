@@ -277,8 +277,8 @@ static void AIHPostNotification(NSString *_Nonnull name, NSString *_Nullable obj
 
 	+ (AIHAnnouncer *)defaultAnnouncer {
 		static AIHAnnouncer *staticDefaultAnnouncer = nil;
-		static dispatch_once_t staticToken;
-		dispatch_once(&staticToken, ^{
+		static dispatch_once_t staticDefaultAnnouncerOnceToken;
+		dispatch_once(&staticDefaultAnnouncerOnceToken, ^{
 			staticDefaultAnnouncer = [[self alloc] init];
 		});
 		return staticDefaultAnnouncer;
@@ -354,8 +354,8 @@ static void AIHPostNotification(NSString *_Nonnull name, NSString *_Nullable obj
 
 	+ (AIHListener *)defaultListener {
 		static AIHListener *staticDefaultListener = nil;
-		static dispatch_once_t staticToken;
-		dispatch_once(&staticToken, ^{
+		static dispatch_once_t staticDefaultListenerOnceToken;
+		dispatch_once(&staticDefaultListenerOnceToken, ^{
 			staticDefaultListener = [[self alloc] init];
 		});
 		return staticDefaultListener;
