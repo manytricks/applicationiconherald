@@ -28,7 +28,7 @@ NSImage *_Nonnull AIHCreateBadgeImage(NSString *_Nonnull badge, NSColor *_Nullab
 		[paragraphStyle setAlignment: NSTextAlignmentCenter];
 		[paragraphStyle setLineBreakMode: NSLineBreakByTruncatingMiddle];
 		NSDictionary *attributes = [NSDictionary dictionaryWithObjectsAndKeys:
-			((textColor) ? textColor : [NSColor whiteColor]), NSForegroundColorAttributeName,
+			(textColor ?: [NSColor whiteColor]), NSForegroundColorAttributeName,
 			[NSFont systemFontOfSize: AIH_BADGE_PRERENDERED_SIZE], NSFontAttributeName,
 			paragraphStyle, NSParagraphStyleAttributeName,
 		nil];
@@ -52,7 +52,7 @@ NSImage *_Nonnull AIHCreateBadgeImage(NSString *_Nonnull badge, NSColor *_Nullab
 		badgeImage = [[NSImage alloc] initWithSize: badgeBounds.size];
 		[badgeImage lockFocus];
 		[NSGraphicsContext saveGraphicsState];
-		[((backgroundColor) ? backgroundColor : [NSColor colorWithCalibratedRed: 1.0 green: 0.0 blue: 0.0 alpha: 0.9]) set];
+		[(backgroundColor ?: [NSColor colorWithCalibratedRed: 1.0 green: 0.0 blue: 0.0 alpha: 0.9]) set];
 		NSShadow *shadow = [[NSShadow alloc] init];
 		[shadow setShadowOffset: NSMakeSize(0.0, -1.0)];
 		[shadow setShadowBlurRadius: AIH_BADGE_PRERENDERED_SHADOW_BLUR_RADIUS];
@@ -61,9 +61,9 @@ NSImage *_Nonnull AIHCreateBadgeImage(NSString *_Nonnull badge, NSColor *_Nullab
 		NSRect innerBadgeRect = NSInsetRect(badgeBounds, AIH_BADGE_PRERENDERED_SHADOW_BLUR_RADIUS, AIH_BADGE_PRERENDERED_SHADOW_BLUR_RADIUS);
 		[[NSBezierPath bezierPathWithRoundedRect: innerBadgeRect xRadius: innerBadgeRect.size.height * 0.5 yRadius: innerBadgeRect.size.height * 0.5] fill];
 		[NSGraphicsContext restoreGraphicsState];
-		if ((borderColor) || (NSAppKitVersionNumber<1343/*NSAppKitVersionNumber10_10*/)) {
+		if ((borderColor) || (NSAppKitVersionNumber<NSAppKitVersionNumber10_10)) {
 			[NSGraphicsContext saveGraphicsState];
-			[((borderColor) ? borderColor : [NSColor whiteColor]) set];
+			[(borderColor ?: [NSColor whiteColor]) set];
 			CGFloat borderWidth = floor(innerBadgeRect.size.height * 0.05);
 			if (borderWidth<1) {
 				borderWidth = 1.0;
@@ -85,6 +85,15 @@ NSImage *_Nonnull AIHCreateBadgeImage(NSString *_Nonnull badge, NSColor *_Nullab
 }
 
 void AIHDrawBadgeImage(NSImage *_Nonnull badgeImage, NSRect iconRect, BOOL alignWithTopEdge, BOOL alignWithRightEdge) {
+	NSGraphicsContext *graphicsContext = [NSGraphicsContext currentContext];
+	NSImageInterpolation interpolationBackup = graphicsContext.imageInterpolation;
+	NSImageInterpolation interpolation = interpolationBackup;
+	if (@available(macOS 11, *)) {
+		interpolation = NSImageInterpolationMedium;	// as of macOS 11.0.1, high interpolation screws up the badge image, so let's make do with medium
+		if (interpolation!=interpolationBackup) {
+			graphicsContext.imageInterpolation = interpolation;
+		}
+	}
 	NSSize badgeImageSize = [badgeImage size];
 	NSRect badgeRect;
 	badgeRect.size.height = iconRect.size.height / AIH_BADGE_HEIGHT_DIVISOR;
@@ -97,6 +106,9 @@ void AIHDrawBadgeImage(NSImage *_Nonnull badgeImage, NSRect iconRect, BOOL align
 		badgeRect.origin.x += iconRect.size.width - badgeRect.size.width;
 	}
 	[badgeImage drawInRect: badgeRect fromRect: NSZeroRect operation: NSCompositingOperationSourceOver fraction: 1.0];
+	if (interpolation!=interpolationBackup) {
+		graphicsContext.imageInterpolation = interpolationBackup;
+	}
 }
 
 void AIHDrawBadge(NSString *_Nonnull badge, NSColor *_Nullable textColor, NSColor *_Nullable backgroundColor, NSColor *_Nullable borderColor, NSRect iconRect, BOOL alignWithTopEdge, BOOL alignWithRightEdge) {
@@ -110,11 +122,7 @@ void AIHDrawBadge(NSString *_Nonnull badge, NSColor *_Nullable textColor, NSColo
 }
 
 static NSString *_Nonnull AIHTransportStringFromData(NSData *_Nonnull data) {
-	#if __MAC_OS_X_VERSION_MIN_REQUIRED<__MAC_10_9
-		return ([data respondsToSelector: @selector(base64EncodedStringWithOptions:)] ? [data base64EncodedStringWithOptions: 0] : [data base64Encoding]);
-	#else
-		return [data base64EncodedStringWithOptions: 0];
-	#endif
+	return [data base64EncodedStringWithOptions: 0];
 }
 
 static NSString *_Nullable AIHUserNameHash(void) {
@@ -171,11 +179,7 @@ static BOOL AIHProcessTransportDictionary(NSDictionary *_Nonnull transportDictio
 		NSImage *compositeIcon = nil;
 		id image = [transportDictionary objectForKey: AIHImageKey];
 		if ([image isKindOfClass: [NSString class]]) {
-			#if __MAC_OS_X_VERSION_MIN_REQUIRED<__MAC_10_9
-				NSData *imageData = ([NSData instancesRespondToSelector: @selector(initWithBase64EncodedString:)] ? [[NSData alloc] initWithBase64EncodedString: image options: 0] : [[NSData alloc] initWithBase64Encoding: image]);
-			#else
-				NSData *imageData = [[NSData alloc] initWithBase64EncodedString: image options: 0];
-			#endif
+			NSData *imageData = [[NSData alloc] initWithBase64EncodedString: image options: 0];
 			if (imageData) {
 				image = [[NSImage alloc] initWithData: imageData];
 				if (image) {
